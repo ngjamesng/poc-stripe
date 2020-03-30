@@ -4,7 +4,6 @@ const stripe_sk = process.env.stripe_sk;
 const connected_stripe_id = process.env.connected_stripe_id;
 const stripe = require('stripe')(stripe_sk);
 
-
 const express = require("express");
 const session = require("express-session");
 const axios = require("axios");
@@ -15,9 +14,10 @@ const MOCK_SESSION_STATE = "_SECRET_RANDOM_";
 const AUTHORIZE_URI = 'https://connect.stripe.com/express/oauth/authorize';
 
 const app = express();
+const cors = require("cors");
 
 app.use(express.json());
-
+app.use(cors());
 nunjucks.configure("templates", {
   autoescape: true,
   express: app
@@ -29,7 +29,7 @@ nunjucks.configure("templates", {
  */
 /** show the form to fill out when you want to become a creator*/
 app.get("/", (req, res) => {
-  return res.render("sign-up-form.html");
+  return res.send("SERVER IS UP")
 });
 
 
@@ -38,18 +38,19 @@ app.get("/register_as_a_creator", (req, res) => {
 
   req.session = {}; //mocking a session
   req.session.state = MOCK_SESSION_STATE;
-  const { firstName, lastName, email } = req.query;
+  const { firstName, lastName, email, type, businessName, country } = req.query;
+  console.log("FORM DATA>>>>", req.query);
   let parameters = {
     client_id: stripe_client_id,
     state: req.session.state,
     'stripe_user[first_name]': firstName || undefined,
     'stripe_user[last_name]': lastName || undefined,
     'stripe_user[email]': email || undefined,
-    // 'stripe_user[business_type]': req.user.type || 'individual',
-    // 'stripe_user[business_name]': req.user.businessName || undefined,
-    // 'stripe_user[country]': req.user.country || undefined
+    // 'stripe_user[business_type]': type || undefined,
+    // 'stripe_user[business_name]': businessName || undefined,
+    // 'stripe_user[country]': country || undefined
   }
-  res.redirect(AUTHORIZE_URI + "?" + querystring.stringify(parameters));
+  return res.send(AUTHORIZE_URI + "?" + querystring.stringify(parameters));
 })
 
 
@@ -78,14 +79,16 @@ app.get("/connect/oauth", (req, res) => {
       // Render some HTML or redirect to a different page.
       // return res.status(200).json({ success: true });
       //redirect to a page? sign up for an event. 
-      res.redirect("/events/1");
+      res.redirect("http://localhost:3000/oauthSuccess");
 
     },
     (err) => {
       if (err.type === 'StripeInvalidGrantError') {
-        return res.status(400).json({ error: 'Invalid authorization code: ' + code });
+        res.redirect("http://localhost:3000/error");
+        // return res.status(400).json({ error: 'Invalid authorization code: ' + code });
       } else {
-        return res.status(500).json({ error: 'An unknown error occurred.' });
+        res.redirect("http://localhost:3000/error");
+        // return res.status(500).json({ error: 'An unknown error occurred.' });
       }
     }
   );
@@ -105,6 +108,7 @@ app.get("/events/:id", (req, res) => {
 });
 
 app.post("/events/:id", async (req, res) => {
+  // const stripeObj = require("stripe")(stripe_sk);
   const eventId = req.params.id;
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -124,18 +128,12 @@ app.post("/events/:id", async (req, res) => {
     cancel_url: 'http://localhost:3000/cancelledPayment',
   });
 
-  console.log("session.id>>>>", session.id);
-  stripe.redirectToCheckout({
-    // Make the id field from the Checkout Session creation API response
-    // available to this file, so you can provide it as parameter here
-    // instead of the {{CHECKOUT_SESSION_ID}} placeholder.
-    sessionId: session.id
-  }).then(function (result) {
-    // If `redirectToCheckout` fails due to a browser or network
-    // error, display the localized error message to your customer
-    // using `result.error.message`.
-  });
-})
+  let url = stripe.redirectToCheckout({
+    SessionId: session.id
+  })
+  console.log("URLLLLL+++++", url);
+  res.redirect("/");
+});
 
 app.get("/cancelledPayment", (req, res) => {
   return res.render("cancelledPayment.html");
@@ -148,6 +146,6 @@ app.use((err, req, res, next) => {
   return res.render("error.html", { err });
 });
 
-app.listen(3000, function () {
-  console.log("app listening on port 3000");
+app.listen(3001, function () {
+  console.log("app listening on port 3001");
 });
