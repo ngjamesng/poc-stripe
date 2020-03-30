@@ -1,0 +1,22 @@
+{
+  "name": "poc-stripe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-session": "^1.17.0",
+    "nunjucks": "^3.2.1",
+    "pg": "^7.18.2",
+    "querystring": "^0.2.0",
+    "stripe": "^8.37.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

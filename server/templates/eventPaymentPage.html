@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Error{% endblock %}
+
+{% block content %}
+
+
+
+<h1>pay for event, the id is {{ id }}, the name is {{ name }}!</h1>
+<p> the price is {{price}} pennies</p>
+<form action="/events/{{id}}" method="POST">
+  <button>pay for event!</button>
+</form>
+{% endblock %}
