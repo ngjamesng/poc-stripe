@@ -106,7 +106,6 @@ app.get("/events/:id", (req, res) => {
 
 app.post("/events/:id", async (req, res) => {
   const eventId = req.params.id;
-  con
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [{
@@ -121,12 +120,20 @@ app.post("/events/:id", async (req, res) => {
         destination: connected_stripe_id, //this id is based on each customer. 
       },
     },
-    success_url: `localhost:3000/events/${eventId}`,
-    cancel_url: 'localhost:3000/cancelledPayment',
+    success_url: `http://localhost:3000/events/${eventId}`,
+    cancel_url: 'http://localhost:3000/cancelledPayment',
   });
+
   console.log("session.id>>>>", session.id);
-  res.send({
+  stripe.redirectToCheckout({
+    // Make the id field from the Checkout Session creation API response
+    // available to this file, so you can provide it as parameter here
+    // instead of the {{CHECKOUT_SESSION_ID}} placeholder.
     sessionId: session.id
+  }).then(function (result) {
+    // If `redirectToCheckout` fails due to a browser or network
+    // error, display the localized error message to your customer
+    // using `result.error.message`.
   });
 })
 
