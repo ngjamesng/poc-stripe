@@ -3,6 +3,7 @@ const stripe_client_id = process.env.stripe_client_id;
 const stripe_sk = process.env.stripe_sk;
 const connected_stripe_id = process.env.connected_stripe_id;
 const stripe = require('stripe')(stripe_sk);
+const LIVESTACK_APP_FEE = 0.05;
 
 const express = require("express");
 const session = require("express-session");
@@ -108,31 +109,43 @@ app.get("/events/:id", (req, res) => {
 });
 
 app.post("/events/:id", async (req, res) => {
-  // const stripeObj = require("stripe")(stripe_sk);
+  //MOCKING DATA FROM DB
   const eventId = req.params.id;
+  const eventData = {
+    id: eventId,
+    price: 1000, // $10.00, price should be in pennies/integers, no floats. If not, convert it!
+    name: "BEST EVENT EVER"
+  }
+  const { price: backendPrice } = eventData;
+  const { id, price: frontendPrice } = req.body;
+  //check if backend and frontend data matches what's being submitted in req.body
+  //if not, throw error
+  const appFee = (backendPrice * LIVESTACK_APP_FEE);
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [{
       name: "TEST PAYMENT",
-      amount: 1000,
+      amount: backendPrice,
       currency: 'usd',
       quantity: 1,
     }],
     payment_intent_data: {
-      application_fee_amount: 123,
+      application_fee_amount: appFee,
       transfer_data: {
         destination: connected_stripe_id, //this id is based on each customer. 
       },
     },
     success_url: `http://localhost:3000/events/${eventId}`,
-    cancel_url: 'http://localhost:3000/cancelledPayment',
+    // success_url: `http://localhost:3000/eventPurchaseSuccess`,
+    cancel_url: 'http://localhost:3000/error',
   });
+  console.log("SESSION>>>", session.id)
+  // let url = stripe.redirectToCheckout({
+  //   SessionId: session.id
+  // })
 
-  let url = stripe.redirectToCheckout({
-    SessionId: session.id
-  })
-  console.log("URLLLLL+++++", url);
-  res.redirect("/");
+ return res.send(session.id);
 });
 
 app.get("/cancelledPayment", (req, res) => {
